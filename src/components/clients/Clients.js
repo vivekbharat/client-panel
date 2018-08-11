@@ -1,18 +1,34 @@
 import React, { Component } from "react";
 import { Link } from "react-router-dom";
+import { compose } from "redux";
+import { connect } from "react-redux";
+import { firestoreConnect } from "react-redux-firebase";
+import PropTypes from "prop-types";
+
+import Spinner from "../layout/Spinner";
 
 class Clients extends Component {
+  state = {
+    totalOwed: null
+  };
+
+  static getDerivedStateFromProps(props, state) {
+    const { clients } = props;
+
+    if (clients) {
+      const total = clients.reduce((total, client) => {
+        return total + parseFloat(client.balance.toString());
+      }, 0);
+
+      return { totalOwed: total };
+    }
+
+    return null;
+  }
+
   render() {
-    const clients = [
-      {
-        id: "32432",
-        firstName: "Vivek",
-        lastName: "Ravikumar",
-        email: "vivek_bharathwaj@yahoo.com",
-        phone: "1234567890",
-        balance: "30"
-      }
-    ];
+    const { clients } = this.props;
+    const { totalOwed } = this.state;
     if (clients) {
       return (
         <div>
@@ -22,6 +38,14 @@ class Clients extends Component {
                 {" "}
                 <i className="fas fa-users" /> Clients{" "}
               </h2>
+            </div>
+            <div className="col-md-6">
+              <h5 className="text-right text-secondary">
+                Total Owed {""}
+                <span className="text-danger">
+                  ${parseFloat(totalOwed).toFixed(2)}
+                </span>
+              </h5>
             </div>
             <div className="col-md-6" />
           </div>
@@ -57,9 +81,19 @@ class Clients extends Component {
         </div>
       );
     } else {
-      return <h3>Loading....</h3>;
+      return <Spinner />;
     }
   }
 }
 
-export default Clients;
+Clients.propTypes = {
+  firestore: PropTypes.object.isRequired,
+  clients: PropTypes.array
+};
+
+export default compose(
+  firestoreConnect([{ collection: "clients" }]),
+  connect((state, props) => ({
+    clients: state.firestore.ordered.clients
+  }))
+)(Clients);
